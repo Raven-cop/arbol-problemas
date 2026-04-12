@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Árbol de Problemas · En Vivo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F5F4EF;--surface:#fff;--border:rgba(0,0,0,.09);--text:#1A1916;--muted:#7B7869;--accent:#2D6A4F;}
+html,body{width:100%;height:100%;background:var(--bg);font-family:"DM Sans",system-ui,sans-serif;color:var(--text);overflow:hidden;}
+body{display:flex;flex-direction:column;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:20;box-shadow:0 1px 8px rgba(0,0,0,.06);}
+.tab{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;user-select:none;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.panel.active{display:flex;}
+
+/* CONTADORES — fuera de la imagen, entre tabs y árbol */
+.counters-bar{
+  display:none;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:8px 20px;
+  flex-shrink:0;
+  justify-content:center;
+  align-items:center;
+  gap:24px;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
+}
+.counters-bar.visible{display:flex;}
+.stat{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.stat-n{font-family:"Fraunces",serif;font-size:20px;font-weight:700;line-height:1;}
+.stat-l{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;}
+.stat-sep{width:1px;height:24px;background:var(--border);}
+
+/* FORMULARIO */
+#panel-form{overflow-y:auto;padding:20px 14px 100px;align-items:center;}
+.fh{text-align:center;margin-bottom:18px;width:100%;max-width:500px;}
+.fh-eye{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px;}
+.fh-title{font-family:"Fraunces",serif;font-size:24px;font-weight:700;}
+.card{background:var(--surface);border-radius:14px;border:1px solid var(--border);width:100%;max-width:500px;margin-bottom:10px;box-shadow:0 2px 14px rgba(0,0,0,.06);}
+.cs{padding:18px;border-bottom:1px solid var(--border);}
+.cs:last-child{border-bottom:none;}
+.sl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px;display:block;}
+.enf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.enf-btn{display:flex;flex-direction:column;gap:3px;padding:10px 10px 10px 13px;background:var(--bg);border:1.5px solid var(--border);border-left-width:4px;border-radius:10px;cursor:pointer;font-family:inherit;color:var(--text);transition:all .18s;text-align:left;}
+.enf-btn:active{transform:scale(.96);}
+.enf-num{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+.enf-name{font-size:11px;font-weight:600;line-height:1.3;color:var(--muted);}
+.tipo-list{display:flex;flex-direction:column;gap:8px;}
+.tipo-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg);border:2px solid var(--border);border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;color:var(--text);width:100%;transition:all .18s;}
+.tipo-btn.active{background:#EEF9F2;border-color:var(--accent);}
+.tipo-btn:active{transform:scale(.98);}
+.te{font-size:24px;flex-shrink:0;line-height:1;}
+.tlabel{font-size:14px;font-weight:700;display:block;}
+.tdesc{font-size:11px;color:var(--muted);display:block;margin-top:1px;}
+.txw{position:relative;}
+textarea{width:100%;padding:13px 13px 28px;font-family:"DM Sans",inherit;font-size:15px;line-height:1.5;background:var(--bg);border:2px solid var(--border);border-radius:10px;color:var(--text);resize:none;outline:none;transition:border-color .2s;}
+textarea::placeholder{color:#BCBAB2;}
+textarea:focus{border-color:var(--accent);background:#fff;}
+.cc{position:absolute;bottom:9px;right:12px;font-size:10px;color:var(--muted);pointer-events:none;}
+#btn-add{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:"DM Sans",inherit;font-size:16px;font-weight:800;cursor:pointer;transition:all .2s;}
+#btn-add:disabled{opacity:.35;cursor:not-allowed;}
+#btn-add:not(:disabled):hover{background:#235840;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,106,79,.3);}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.spinning .spinner{display:block;}
+.spinning .btn-lbl{display:none;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);padding:12px 22px;border-radius:50px;font-size:13px;font-weight:700;white-space:nowrap;z-index:300;opacity:0;pointer-events:none;transition:all .32s cubic-bezier(.34,1.56,.64,1);box-shadow:0 6px 24px rgba(0,0,0,.18);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{background:#14532D;color:#fff;}
+.toast.err{background:#7F1D1D;color:#fff;}
+
+/* PANEL ÁRBOL */
+#panel-tree{position:relative;overflow:hidden;background:#f0ede4;flex:1;}
+#tree-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;user-select:none;pointer-events:none;z-index:1;}
+#boxes-layer{position:absolute;inset:0;z-index:2;pointer-events:none;}
+
+/* CAJITA — sin franja, solo borde de color */
+.nbox{
+  position:absolute;
+  width:56px;
+  background:#fff;
+  border-radius:3px;
+  padding:3px 4px;
+  font-family:"DM Sans",system-ui,sans-serif;
+  font-size:5.5px;
+  line-height:1.25;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+  overflow:visible;
+  animation:fadeInMini .25s ease-out both;
+  pointer-events:all;
+  cursor:default;
+  /* borde de color por enfoque — se aplica via JS */
+  border:1.5px solid #999;
+  /* max 2 líneas */
+  display:flex;
+  flex-direction:column;
+}
+.nbox:hover{box-shadow:0 3px 12px rgba(0,0,0,.22);z-index:20;}
+
+/* Botón X */
+.nbox-del{
+  position:absolute;top:-5px;right:-5px;
+  width:11px;height:11px;border-radius:50%;
+  background:#ef4444;color:#fff;
+  font-size:7px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .15s;
+  pointer-events:all;border:none;z-index:25;line-height:1;
+}
+.nbox:hover .nbox-del{opacity:1;}
+
+.node-text{
+  font-size:5.5px;font-weight:500;color:#111;
+  line-height:1.25;word-break:break-word;
+  /* Clamp a 2 líneas */
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* Cajitas que crecen hacia la IZQUIERDA (amazonia, caribe, andina1) */
+/* transform-origin derecha: el punto dado es el borde derecho */
+.nbox.anchor-right{
+  transform:translate(-100%, -50%);
+}
+/* Cajitas que crecen hacia la DERECHA (andina2, orinoquia, pacifica) */
+.nbox.anchor-left{
+  transform:translate(0%, -50%);
+}
+/* Cajitas estándar centradas (causas y efectos) */
+.nbox.anchor-center{
+  transform:translate(-50%, -50%);
+}
+
+/* TOOLTIP */
+.nbox-tooltip{
+  position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);
+  background:#1A1916;color:#fff;
+  border-radius:8px;padding:8px 11px;
+  font-size:11px;line-height:1.45;
+  pointer-events:none;opacity:0;transition:opacity .18s;
+  z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.28);
+  min-width:150px;max-width:230px;white-space:normal;
+}
+.nbox-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1A1916;}
+.nbox:hover .nbox-tooltip{opacity:1;}
+.tt-enf{font-size:10px;font-weight:700;margin-bottom:3px;}
+.tt-tipo{font-size:9px;opacity:.65;margin-bottom:5px;}
+.tt-texto{font-size:11px;font-weight:500;}
+
+@keyframes fadeInMini{from{opacity:0;transform:translate(-50%,-48%) scale(0.85);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+
+/* Live badge */
+.live-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:50px;padding:6px 16px;display:flex;align-items:center;gap:7px;backdrop-filter:blur(10px);z-index:10;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 10px rgba(0,0,0,.08);white-space:nowrap;}
+.ldot{width:8px;height:8px;border-radius:50%;background:#22C55E;animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+
+.empty-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;z-index:3;}
+.empty-icon{font-size:56px;animation:flt 3s ease-in-out infinite;}
+@keyframes flt{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.empty-t{font-family:"Fraunces",serif;font-size:20px;font-weight:700;color:var(--accent);}
+.empty-s{font-size:12px;color:var(--muted);text-align:center;max-width:210px;line-height:1.5;}
+.offline-bar{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);background:#FEF3C7;border:1px solid #F59E0B;border-radius:50px;padding:5px 16px;font-size:11px;font-weight:600;color:#92400E;z-index:10;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" id="tab-form" onclick="goTab('form')">📝 Formulario</div>
+  <div class="tab"        id="tab-tree" onclick="goTab('tree')">🌳 Árbol en vivo</div>
+</div>
+
+<!-- CONTADORES FUERA DE LA IMAGEN -->
+<div class="counters-bar" id="counters-bar">
+  <div class="stat"><div class="stat-n" id="cnt-t">0</div><div class="stat-l">Total</div></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><div class="stat-n" id="cnt-c" style="color:#15803D">0</div><div class="stat-l">Causas</div></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><div class="stat-n" id="cnt-p" style="color:#92400E">0</div><div class="stat-l">Problemas</div></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><div class="stat-n" id="cnt-e" style="color:#166534">0</div><div class="stat-l">Efectos</div></div>
+</div>
+<div class="panel active" id="panel-form">
+  <div class="fh">
+    <div class="fh-eye">Participación ciudadana</div>
+    <div class="fh-title">🌱 Aporta al árbol</div>
+  </div>
+
+  <div class="card">
+    <div class="cs">
+      <span class="sl">01 · Enfoque</span>
+      <div class="enf-grid" id="enf-grid"></div>
+    </div>
+<div class="cs">
+  <span class="sl">02 · Región</span>
+  <select id="region" style="width:100%; padding:8px; border-radius:8px;">
+    <option value="">Selecciona región</option>
+    <option value="amazonia">Amazonía</option>
+    <option value="caribe">Caribe e Insular</option>
+    <option value="andina1">Andina (1)</option>
+    <option value="andina2">Andina (2)</option>
+    <option value="orinoquia">Orinoquía</option>
+    <option value="pacifica">Pacífica</option>
+  </select>
+</div>
+    <div class="cs">
+      <span class="sl">02 · Tipo de aporte</span>
+      <div class="tipo-list" id="tipo-list"></div>
+    </div>
+    <div class="cs">
+      <span class="sl">03 · Describe tu aporte</span>
+      <div class="txw">
+        <textarea id="txt" rows="3"
+          placeholder="Escribe aquí tu causa, problema o efecto..."
+          maxlength="160"
+          oninput="document.getElementById('cc').textContent=this.value.length+'/160';validate()">
+        </textarea>
+        <span class="cc" id="cc">0/160</span>
+      </div>
+    </div>
+    <div class="cs">
+      <button id="btn-add" disabled onclick="addNode()">
+        <div class="spinner"></div>
+        <span class="btn-lbl">🌱 Agregar al árbol</span>
+      </button>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:12px;color:var(--muted);max-width:280px;margin:0 auto;line-height:1.5">
+    Tu aporte aparecerá en <strong style="color:var(--accent)">tiempo real</strong> en el árbol compartido 🌳
+  </p>
+</div>
+
+<!-- ÁRBOL -->
+<div class="panel" id="panel-tree">
+  <img id="tree-bg" src="arbol_fondo.jpg" alt="Árbol de problemas">
+  <div id="boxes-layer"></div>
+  <div class="live-badge"><div class="ldot"></div>En vivo</div>
+  <div class="offline-bar" id="offline-bar">⚠️ Modo demo — configura Supabase</div>
+  <div class="empty-state" id="empty">
+    <div class="empty-icon">🌱</div>
+    <div class="empty-t">El árbol está esperando</div>
+    <div class="empty-s">Los aportes aparecerán aquí en tiempo real</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ SUPABASE ══════════════════════════════════════════════
+const SUPABASE_URL  = 'https://cydfrrowrzvfwbhtmdvl.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5ZGZycm93cnp2ZndiaHRtZHZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDkwNTEsImV4cCI6MjA5MTUyNTA1MX0.hdbnWxr0ve6zKYsEN5NP_MxKAFufWxKygNJmmEghwcc';
+
+const ENFOQUES = [
+  {id:'e1',num:'E1',label:'Adaptación cambio climático / Eco-Reducción',color:'#F5C518',dark:'#6B5300'},
+  {id:'e2',num:'E2',label:'Comunidades de aprendizaje y participación',  color:'#F4723B',dark:'#7A2800'},
+  {id:'e3',num:'E3',label:'Preparación y recuperación oportuna',         color:'#9B59B6',dark:'#4A235A'},
+  {id:'e4',num:'E4',label:'Territorialización y financiamiento GRD',     color:'#C0392B',dark:'#5B1717'},
+  {id:'e5',num:'E5',label:'Planeación y ordenamiento con GRD',           color:'#2471A3',dark:'#154360'},
+  {id:'e6',num:'E6',label:'Ciencia, tecnología e innovación',            color:'#17A589',dark:'#0A5544'},
+];
+const TIPOS = [
+  {id:'causa',   emoji:'🌱',label:'Causa',   desc:'Raíz del problema'},
+  {id:'problema',emoji:'🌳',label:'Problema',desc:'Nodo central'},
+  {id:'efecto',  emoji:'🍃',label:'Efecto',  desc:'Consecuencia'},
+];
+const ECOL  = Object.fromEntries(ENFOQUES.map(e=>[e.id,e.color]));
+const EDARK = Object.fromEntries(ENFOQUES.map(e=>[e.id,e.dark]));
+
+// Regiones que anclan desde la DERECHA (el punto es el borde derecho de la cajita)
+// Amazonía, Caribe, Andina1 están a la izquierda del tronco
+const ANCHOR_RIGHT = new Set(['amazonia','caribe','andina1']);
+
+// ══ COORDENADAS CALIBRADAS ════════════════════════════════
+const ANCHORS = {
+  e6: {
+    pacifica: { efecto:[{x:25.68,y:54.54},{x:26.75,y:47.65}], causa:[{x:93.49,y:85.25},{x:96.57,y:81.31}] },
+    amazonia: { efecto:[{x:29.54,y:42.73},{x:36.84,y:40.44}], causa:[{x:92.49,y:72.02},{x:93.35,y:77.16}] },
+    andina1:  { efecto:[{x:37.05,y:44.7}, {x:43.92,y:45.57}], causa:[{x:75.83,y:71.04},{x:78.47,y:75.41}] },
+    andina2:  { efecto:[{x:36.84,y:50.49},{x:36.98,y:56.5} ], causa:[{x:85.34,y:81.53},{x:89.56,y:83.17}] },
+    orinoquia:{ efecto:[{x:41.99,y:58.14},{x:46.5, y:55.63}], causa:[{x:65.95,y:72.02},{x:71.39,y:71.15}] },
+    caribe:   { efecto:[null,              {x:47.14,y:49.4} ], causa:[{x:83.77,y:71.69},{x:85.55,y:74.86}] },
+  },
+  e5: {
+    orinoquia:{ efecto:[{x:32.91,y:19.34},{x:38.2, y:18.25}], causa:[{x:21.82,y:75.85},{x:29.54,y:73.66}] },
+    pacifica: { efecto:[{x:28.11,y:26.78},{x:28.9, y:34.21}], causa:[{x:10.44,y:87.87},{x:12.23,y:93.66}] },
+    amazonia: { efecto:[{x:32.76,y:36.17},{x:40.63,y:36.28}], causa:[{x:2.29, y:87.21},{x:5.72, y:92.13}] },
+    andina2:  { efecto:[{x:37.91,y:26.45},{x:42.42,y:24.04}], causa:[{x:35.27,y:72.57},{x:40.56,y:72.68}] },
+    andina1:  { efecto:[{x:47.43,y:26.45},{x:48.14,y:33.44}], causa:[{x:13.38,y:75.41},{x:17.17,y:73.77}] },
+    caribe:   { efecto:[{x:41.99,y:39.78},{x:48.93,y:42.51}], causa:[null,              {x:8.73, y:75.74}] },
+  },
+  e4: {
+    orinoquia:{ efecto:[{x:46.43,y:5.14}, {x:51.72,y:1.86} ], causa:[{x:29.26,y:80.87},{x:33.98,y:80.33}] },
+    andina1:  { efecto:[{x:55.65,y:5.68}, {x:55.01,y:13.88}], causa:[{x:18.17,y:90.71},{x:18.31,y:96.39}] },
+    pacifica: { efecto:[{x:45.64,y:10.27},{x:45.71,y:16.72}], causa:[{x:31.4, y:90.71},{x:30.76,y:95.19}] },
+    andina2:  { efecto:[{x:49.43,y:18.36},{x:52,   y:24.92}], causa:[{x:25.32,y:90.71},{x:23.25,y:95.74}] },
+    caribe:   { efecto:[{x:58.73,y:14.54},{x:59.16,y:21.64}], causa:[{x:20.03,y:85.36},{x:23.96,y:80.55}] },
+    amazonia: { efecto:[{x:51.58,y:29.95},{x:54.37,y:35.08}], causa:[{x:38.13,y:79.23},{x:43.85,y:78.25}] },
+  },
+  e2: {
+    amazonia: { efecto:[{x:67.6, y:6.56}, {x:72.25,y:9.73} ], causa:[{x:62.95,y:86.89},{x:62.95,y:82.51}] },
+    andina1:  { efecto:[{x:64.59,y:12.13},{x:63.52,y:20.98}], causa:[{x:67.96,y:88.63},{x:71.96,y:91.91}] },
+    caribe:   { efecto:[{x:69.96,y:15.63},{x:74.75,y:18.58}], causa:[{x:56.8, y:84.92},{x:60.23,y:80.55}] },
+    orinoquia:{ efecto:[{x:71.6, y:25.25},{x:71.96,y:30.6} ], causa:[{x:57.87,y:89.62},{x:61.3, y:91.37}] },
+    andina2:  { efecto:[{x:61.23,y:26.56},{x:58.08,y:32.9} ], causa:[{x:70.46,y:96.72},{x:74.47,y:96.61}] },
+    pacifica: { efecto:[{x:65.38,y:32.02},{x:61.38,y:37.16}], causa:[{x:66.24,y:95.96},{x:61.8, y:96.61}] },
+  },
+  e3: {
+    andina1:  { efecto:[{x:87.2, y:28.74},{x:83.19,y:28.2} ], causa:[{x:47.71,y:92.13},{x:51.07,y:89.95}] },
+    orinoquia:{ efecto:[{x:79.9, y:37.81},{x:84.12,y:37.81}], causa:[{x:40.49,y:88.42},{x:44.28,y:86.67}] },
+    pacifica: { efecto:[{x:76.68,y:26.56},{x:80.19,y:31.69}], causa:[{x:40.34,y:94.21},{x:44.28,y:95.63}] },
+    amazonia: { efecto:[{x:71.1, y:43.72},{x:75.97,y:40.33}], causa:[{x:51.07,y:96.28},{x:56.51,y:96.07}] },
+    andina2:  { efecto:[{x:65.81,y:37.05},{x:70.39,y:34.54}], causa:[{x:47.5, y:84.48},{x:50.14,y:80.22}] },
+    caribe:   { efecto:[{x:61.3, y:45.68},{x:67.67,y:45.46}], causa:[{x:36.91,y:89.51},{x:36.91,y:94.21}] },
+  },
+  e1: {
+    pacifica: { efecto:[{x:60.73,y:55.85},{x:63.66,y:59.45}], causa:[{x:84.55,y:89.18},{x:89.77,y:91.04}],
+                problema:[null,{x:62.37,y:66.37}] },
+    caribe:   { efecto:[{x:66.17,y:53.11},{x:69.32,y:59.89}], causa:[{x:66.96,y:78.03},{x:71.1, y:80.77}],
+                problema:[null,{x:51.04,y:64.29}] },
+    andina2:  { efecto:[{x:69.39,y:47.87},{x:73.75,y:48.42}], causa:[{x:93.14,y:92.9} ,{x:94.64,y:96.83}],
+                problema:[null,{x:61.29,y:61.99}] },
+    orinoquia:{ efecto:[{x:72.03,y:55.08},{x:76.83,y:54.64}], causa:[{x:74.11,y:82.3} ,{x:70.03,y:85.57}],
+                problema:[null,{x:61.72,y:64.29}] },
+    andina1:  { efecto:[{x:80.33,y:44.04},{x:80.55,y:49.62}], causa:[{x:79.4, y:95.08},{x:84.41,y:96.72}],
+                problema:[null,{x:50.54,y:66.48}] },
+    amazonia: { efecto:[{x:80.76,y:56.28},{x:84.55,y:52.46}], causa:[{x:77.83,y:82.95},{x:79.83,y:88.31}],
+                problema:[null,{x:51.26,y:62.1}] },
+  },
+};
+
+// ══ ESTADO ════════════════════════════════════════════════
+let nodes=[], selE=null, selT=null;
+let db, connected=false;
+const slotUsed = {};
+
+// ══ SUPABASE ══════════════════════════════════════════════
+function initSupabase(){
+  try{
+    db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+    db.from('nodos').select('*').order('timestamp',{ascending:true})
+      .then(({data,error})=>{
+        if(error) throw error;
+        connected=true; nodes=data||[];
+        updateCounters();
+        if(document.getElementById('panel-tree').classList.contains('active')) renderAllBoxes();
+      }).catch(()=>offlineMode());
+    db.channel('nodos-live')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'nodos'},payload=>{
+        nodes.push(payload.new);
+        updateCounters();
+        addOneBox(payload.new);
+      }).subscribe();
+  }catch(e){offlineMode();}
+}
+
+function offlineMode(){
+  document.getElementById('offline-bar').style.display='block';
+  nodes=[
+    {id:'d1',texto:'Alta exposición a eventos climáticos',  tipo:'problema',enfoque:'e1',region:'amazonia'},
+    {id:'d2',texto:'Falta de recursos para GRD',           tipo:'causa',   enfoque:'e5',region:'andina2'},
+    {id:'d3',texto:'Débil articulación institucional',      tipo:'causa',   enfoque:'e2',region:'caribe'},
+    {id:'d4',texto:'Pérdida de biodiversidad acelerada',   tipo:'causa',   enfoque:'e1',region:'amazonia'},
+    {id:'d5',texto:'Desinterés comunitario en GRD',        tipo:'efecto',  enfoque:'e2',region:'pacifica'},
+    {id:'d6',texto:'Aumento vulnerabilidad sistémica',     tipo:'efecto',  enfoque:'e3',region:'orinoquia'},
+    {id:'d7',texto:'Recurrencia de desastres locales',     tipo:'efecto',  enfoque:'e6',region:'caribe'},
+    {id:'d8',texto:'Baja inversión en ciencia aplicada',   tipo:'causa',   enfoque:'e6',region:'amazonia'},
+    {id:'d9',texto:'Pérdida de vidas ante eventos',        tipo:'efecto',  enfoque:'e1',region:'andina1'},
+  ];
+  updateCounters();
+  if(document.getElementById('panel-tree').classList.contains('active')) renderAllBoxes();
+}
+
+// ══ COORDENADAS imagen → px panel (object-fit:contain) ════
+function imgToPx(xPct,yPct){
+  const panel=document.getElementById('panel-tree');
+  const PW=panel.clientWidth,PH=panel.clientHeight;
+  const imgAspect=4200/2749,panelAspect=PW/PH;
+  let rW,rH,oX,oY;
+  if(panelAspect>imgAspect){rH=PH;rW=PH*imgAspect;oX=(PW-rW)/2;oY=0;}
+  else{rW=PW;rH=PW/imgAspect;oX=0;oY=(PH-rH)/2;}
+  return {x:oX+(xPct/100)*rW, y:oY+(yPct/100)*rH};
+}
+
+// ══ RENDER ════════════════════════════════════════════════
+function renderAllBoxes(){
+  document.getElementById('empty').style.display=nodes.length?'none':'flex';
+  document.getElementById('boxes-layer').innerHTML='';
+  Object.keys(slotUsed).forEach(k=>delete slotUsed[k]);
+  nodes.forEach(n=>addOneBox(n));
+}
+
+function addOneBox(n){
+  document.getElementById('empty').style.display='none';
+  const enf  = ENFOQUES.find(e=>e.id===n.enfoque)||ENFOQUES[0];
+  const tipo = TIPOS.find(t=>t.id===n.tipo)||TIPOS[0];
+  const key  = n.enfoque+'_'+(n.region||'')+'_'+n.tipo;
+  if(!slotUsed[key]) slotUsed[key]=[false,false];
+  const slotIdx = !slotUsed[key][0] ? 0 : !slotUsed[key][1] ? 1 : -1;
+  if(slotIdx===-1){ console.warn('Slots llenos:',key); return; }
+  slotUsed[key][slotIdx]=true;
+  const slots = ANCHORS[n.enfoque]?.[n.region]?.[n.tipo];
+  const coord = slots?.[slotIdx];
+  if(!coord){ console.warn('Sin coord:',n.enfoque,n.region,n.tipo,'slot',slotIdx); return; }
+  const pos = imgToPx(coord.x,coord.y);
+
+  // Determinar ancla según tipo y región
+  let anchorClass = 'anchor-center';
+  if(n.tipo === 'problema'){
+    anchorClass = ANCHOR_RIGHT.has(n.region) ? 'anchor-right' : 'anchor-left';
+  }
+
+  const box=document.createElement('div');
+  box.className='nbox '+anchorClass;
+  box.id='box-'+n.id;
+  box.style.left=pos.x+'px';
+  box.style.top =pos.y+'px';
+  box.style.borderColor=enf.color;
+
+  box.innerHTML=`
+    <button class="nbox-del" onclick="deleteBox('${n.id}',event)">✕</button>
+    <div class="node-text">${n.texto}</div>
+    <div class="nbox-tooltip">
+      <div class="tt-enf" style="color:${enf.color}">${enf.num} · ${enf.label}</div>
+      <div class="tt-tipo">${tipo.emoji} ${tipo.label} · ${n.region||''}</div>
+      <div class="tt-texto">${n.texto}</div>
+    </div>
+  `;
+  document.getElementById('boxes-layer').appendChild(box);
+}
+
+async function deleteBox(nodeId,e){
+  e.stopPropagation();
+  const box=document.getElementById('box-'+nodeId);
+  if(box){box.style.transition='all .2s';box.style.opacity='0';box.style.transform+=' scale(0)';setTimeout(()=>box.remove(),200);}
+  nodes=nodes.filter(n=>n.id!==nodeId);
+  updateCounters();
+  setTimeout(()=>{document.getElementById('boxes-layer').innerHTML='';Object.keys(slotUsed).forEach(k=>delete slotUsed[k]);nodes.forEach(n=>addOneBox(n));},250);
+  if(connected&&db) await db.from('nodos').delete().eq('id',nodeId);
+}
+
+// ══ FORMULARIO ════════════════════════════════════════════
+function buildForm(){
+  const eg=document.getElementById('enf-grid');
+  ENFOQUES.forEach(e=>{
+    const b=document.createElement('button');
+    b.className='enf-btn';b.dataset.id=e.id;b.style.borderLeftColor=e.color;
+    b.innerHTML=`<span class="enf-num" style="color:${e.dark}">${e.num}</span><span class="enf-name">${e.label}</span>`;
+    b.onclick=()=>{
+      selE=e.id;
+      document.querySelectorAll('.enf-btn').forEach(x=>{x.style.background='';x.style.borderColor='';x.style.borderLeftColor=ECOL[x.dataset.id];});
+      b.style.background=e.color+'1A';b.style.borderColor=e.color;
+      validate();
+    };
+    eg.appendChild(b);
+  });
+  const tl=document.getElementById('tipo-list');
+  TIPOS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='tipo-btn';b.dataset.id=t.id;
+    b.innerHTML=`<span class="te">${t.emoji}</span><span><span class="tlabel">${t.label}</span><span class="tdesc">${t.desc}</span></span>`;
+    b.onclick=()=>{selT=t.id;document.querySelectorAll('.tipo-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');validate();};
+    tl.appendChild(b);
+  });
+}
+function validate(){
+  const region=document.getElementById('region')?.value||'';
+  const ok=selE&&selT&&region&&document.getElementById('txt').value.trim().length>2;
+  const btn=document.getElementById('btn-add');
+  btn.disabled=!ok; btn.style.opacity=ok?1:.35;
+}
+async function addNode(){
+  const texto  = document.getElementById('txt').value.trim();
+  const region = document.getElementById('region').value;
+  if(!selE || !selT || !texto || !region) return;
+  const btn = document.getElementById('btn-add');
+  btn.classList.add('spinning'); btn.disabled=true;
+  const nodo = { texto, tipo:selT, enfoque:selE, region, timestamp:Date.now() };
+  try{
+    if(connected && db){
+      const {error} = await db.from('nodos').insert([nodo]);
+      if(error) throw error;
+    } else {
+      const local = {...nodo, id:'local-'+Date.now()};
+      nodes.push(local);
+      updateCounters();
+      addOneBox(local);
+    }
+    toast('Tu aporte fue agregado 🌳','ok');
+    resetForm();
+  } catch(e){
+    toast('Error al guardar. Revisa la conexión.','err');
+  } finally {
+    btn.classList.remove('spinning');
+    validate();
+  }
+}
+
+function resetForm(){
+  document.getElementById('txt').value='';
+  document.getElementById('cc').textContent='0/160';
+  selE=null;selT=null;
+  document.getElementById('region').value='';
+  document.querySelectorAll('.enf-btn').forEach(x=>{x.style.background='';x.style.borderColor='';x.style.borderLeftColor=ECOL[x.dataset.id];});
+  document.querySelectorAll('.tipo-btn').forEach(x=>x.classList.remove('active'));
+  validate();
+}
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function updateCounters(){
+  document.getElementById('cnt-t').textContent=nodes.length;
+  document.getElementById('cnt-c').textContent=nodes.filter(n=>n.tipo==='causa').length;
+  document.getElementById('cnt-p').textContent=nodes.filter(n=>n.tipo==='problema').length;
+  document.getElementById('cnt-e').textContent=nodes.filter(n=>n.tipo==='efecto').length;
+}
+function goTab(id){
+  ['form','tree'].forEach(t=>{
+    document.getElementById('panel-'+t).classList.toggle('active',t===id);
+    document.getElementById('tab-'+t).classList.toggle('active',t===id);
+  });
+  // Mostrar/ocultar contadores solo en árbol
+  document.getElementById('counters-bar').classList.toggle('visible', id==='tree');
+  if(id==='tree') renderAllBoxes();
+}
+window.addEventListener('resize',()=>{
+  if(document.getElementById('panel-tree').classList.contains('active')) renderAllBoxes();
+});
+buildForm();
+initSupabase();
+</script>
+</body>
+</html>
