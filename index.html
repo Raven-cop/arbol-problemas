@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Las voces del territorio</title>
+<title>Voces por territorio</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@700&display=swap" rel="stylesheet">
@@ -234,7 +234,7 @@ textarea:focus{border-color:var(--accent);background:#fff;}
 
 <div class="panel active" id="panel-form">
   <div class="fh">
-    <div class="fh-eye">Las voces del territorio</div>
+    <div class="fh-eye">Voces por territorio</div>
     <div class="fh-title">Aporta al arbol</div>
   </div>
   <div class="card">
@@ -288,7 +288,7 @@ textarea:focus{border-color:var(--accent);background:#fff;}
   <img id="tree-bg" src="arbol_fondo.jpg" alt="Arbol de problemas">
   <div id="boxes-layer"></div>
 
-  <div class="live-badge"><div class="ldot"></div>Las voces del territorio</div>
+  <div class="live-badge"><div class="ldot"></div>Voces por territorio</div>
   <div class="admin-badge" id="admin-badge">&#x1F511; Modo admin activo</div>
   <div class="offline-bar" id="offline-bar">Modo demo</div>
 
@@ -864,7 +864,7 @@ function exportarArbol(){
   ctx.font = 'bold 80px Georgia, serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Las voces del territorio', IMG_W/2, TITULO_H/2);
+  ctx.fillText('Voces por territorio', IMG_W/2, TITULO_H/2);
 
   // Cargar y dibujar imagen del arbol
   var img = document.getElementById('tree-bg');
@@ -990,7 +990,7 @@ function exportarExcel(){
   html += '<table border="1" cellspacing="0" cellpadding="0">';
 
   // Título
-  html += '<tr><td colspan="5" style="background:#2D6A4F;color:#ffffff;font-size:18px;font-weight:bold;padding:14px 16px;text-align:center;border:1px solid #166534;">Las voces del territorio</td></tr>';
+  html += '<tr><td colspan="5" style="background:#2D6A4F;color:#ffffff;font-size:18px;font-weight:bold;padding:14px 16px;text-align:center;border:1px solid #166534;">Voces por territorio</td></tr>';
 
   // Subtítulo fecha
   html += '<tr><td colspan="5" style="background:#F0FDF4;color:#166534;font-size:11px;padding:6px 12px;text-align:right;border:1px solid #cccccc;">Exportado el: '+new Date().toLocaleString('es-CO')+'</td></tr>';
