@@ -180,7 +180,22 @@ textarea:focus{border-color:var(--accent);background:#fff;}
 .admin-badge.show{display:block;}
 
 /* Panel departamentos */
-.deptos-panel{position:absolute;left:10px;top:85%;transform:translateY(-50%);background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:12px;padding:10px 12px;backdrop-filter:blur(10px);z-index:10;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:190px;max-height:25vh;overflow-y:auto;}
+/* Panel departamentos - versión móvil */
+@media (max-width: 768px) {.deptos-panel {position: absolute;left: 10px;top: 85%;transform: translateY(-50%);background: rgba(255,255,255,.94);border: 1px solid var(--border);border-radius: 12px;padding: 10px 12px;backdrop-filter: blur(10px);z-index: 10;box-shadow: 0 2px 10px rgba(0,0,0,.08); max-width: 190px;max-height: 25vh;overflow-y: auto;}}
+
+/* Panel departamentos - versión escritorio */
+@media (min-width: 769px) {.deptos-panel {position: fixed;right: 20px;top: 20px;
+    transform: none;
+    background: rgba(255,255,255,.98);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 300px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+  
 .deptos-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin-bottom:8px;}
 .depto-row{margin-bottom:7px;}
 .depto-row:last-child{margin-bottom:0;}
